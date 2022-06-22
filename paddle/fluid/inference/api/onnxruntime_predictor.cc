@@ -342,7 +342,7 @@ uint64_t ONNXRuntimePredictor::TryShrinkMemory() {
     std::cout << "before size:" << iter.second->size()
               << "  capacity:" << iter.second->capacity() << std::endl;
     iter.second->clear();
-    std::vector<int8_t>().swap(*(iter.second->get()));
+    std::vector<int8_t>().swap(*(iter.second));
   }
 
   for (auto &iter : input_buffers_) {
