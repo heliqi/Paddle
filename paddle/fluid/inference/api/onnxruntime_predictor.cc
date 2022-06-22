@@ -268,8 +268,8 @@ std::unique_ptr<ZeroCopyTensor> ONNXRuntimePredictor::GetInputTensor(
   res->SetOrtBinding(binding_);
   auto iter = input_buffers_.find(name);
   if (iter == input_buffers_.end()) {
-    std::vector<int8_t> i_vector;
-    input_buffers_[name] = std::make_shared<std::vector<int8_t>>(i_vector);
+    // std::vector<int8_t> i_vector;
+    input_buffers_[name] = std::make_shared<std::vector<int8_t>>();
     res->SetOrtBuffer(input_buffers_[name]);
   } else {
     res->SetOrtBuffer(iter->second);
@@ -338,6 +338,18 @@ std::unique_ptr<PaddlePredictor> ONNXRuntimePredictor::Clone(void *stream) {
 }
 
 uint64_t ONNXRuntimePredictor::TryShrinkMemory() {
+  for (auto &iter : input_buffers_) {
+    std::cout << "before size:" << iter.second->size()
+              << "  capacity:" << iter.second->capacity() << std::endl;
+    iter.second->clear();
+    std::vector<int8_t>().swap(*(iter.second->get()));
+  }
+
+  for (auto &iter : input_buffers_) {
+    std::cout << "after size:" << iter.second->size()
+              << "  capacity:" << iter.second->capacity() << std::endl;
+  }
+
   return paddle::memory::Release(place_);
 }
 
