@@ -142,23 +142,6 @@ bool ONNXRuntimePredictor::InitBinding() {
 
 bool ONNXRuntimePredictor::Init() {
   VLOG(3) << "ONNXRuntime Predictor::init()";
-
-  char *onnx_proto = nullptr;
-  int out_size;
-  if (config_.model_from_memory()) {
-    paddle2onnx::Export(config_.prog_file().data(),
-                        config_.prog_file().size(),
-                        config_.params_file().data(),
-                        config_.params_file().size(),
-                        &onnx_proto,
-                        &out_size);
-  } else {
-    paddle2onnx::Export(config_.prog_file().c_str(),
-                        config_.params_file().c_str(),
-                        &onnx_proto,
-                        &out_size);
-  }
-
   Ort::SessionOptions session_options;
   if (config_.ort_optimization_enabled()) {
     session_options.SetGraphOptimizationLevel(
@@ -181,15 +164,38 @@ bool ONNXRuntimePredictor::Init() {
 #endif
   } else {
     VLOG(2) << "ONNXRuntime Profiler is deactivated, and no profiling report "
-               "will be "
-               "generated.";
+               "will be generated.";
   }
-  session_ = std::make_shared<Ort::Session>(
-      *env_, onnx_proto, static_cast<size_t>(out_size), session_options);
-  InitBinding();
 
-  delete onnx_proto;
-  onnx_proto = nullptr;
+  if (config_.onnxmodel_enabled()) {
+    if (config_.prog_file().empty()) {
+      LOG(ERROR) << "Either prog_file should be set.";
+      return false;
+    }
+    session_ = std::make_shared<Ort::Session>(
+        *env_, config_.prog_file().c_str(), session_options);
+  } else {
+    char *onnx_proto = nullptr;
+    int out_size = 0;
+    if (config_.model_from_memory()) {
+      paddle2onnx::Export(config_.prog_file().data(),
+                          config_.prog_file().size(),
+                          config_.params_file().data(),
+                          config_.params_file().size(),
+                          &onnx_proto,
+                          &out_size);
+    } else {
+      paddle2onnx::Export(config_.prog_file().c_str(),
+                          config_.params_file().c_str(),
+                          &onnx_proto,
+                          &out_size);
+    }
+    session_ = std::make_shared<Ort::Session>(
+        *env_, onnx_proto, static_cast<size_t>(out_size), session_options);
+    delete onnx_proto;
+    onnx_proto = nullptr;
+  }
+  InitBinding();
   return true;
 }
 

@@ -351,6 +351,10 @@ struct PD_INFER_DECL AnalysisConfig {
   ///
   void EnableORTOptimization();
   ///
+  /// \brief load ONNX model.
+  ///
+  void EnableONNXModel();
+  ///
   /// \brief A boolean state telling whether the GPU is turned on.
   ///
   /// \return bool Whether the GPU is turned on.
@@ -384,6 +388,12 @@ struct PD_INFER_DECL AnalysisConfig {
   /// \return bool Whether the ONNXRuntime is turned on.
   ///
   bool use_onnxruntime() const { return use_onnxruntime_; }
+  ///
+  /// \brief A boolean state telling whether loading ONNX model.
+  ///
+  /// \return bool Whether loading ONNX model.
+  ///
+  bool onnxmodel_enabled() const { return load_onnx_model_; }
   ///
   /// \brief A boolean state telling whether the ONNXRuntime Optimization is
   /// turned on.
@@ -987,6 +997,7 @@ struct PD_INFER_DECL AnalysisConfig {
   // ONNXRuntime related
   bool use_onnxruntime_{false};
   bool enable_ort_optimization_{false};
+  bool load_onnx_model_{false};
 
   // Padding related
   bool use_fc_padding_{true};

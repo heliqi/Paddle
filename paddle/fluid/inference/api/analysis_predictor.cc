@@ -2212,7 +2212,8 @@ Predictor::Predictor(const Config &config) {
     if (config.use_gpu()) {
       LOG(WARNING) << "The current ONNXRuntime backend doesn't support GPU,"
                       "and it falls back to use Paddle Inference.";
-    } else if (!paddle::CheckConvertToONNX(config)) {
+    } else if (!config.onnxmodel_enabled() &&
+               !paddle::CheckConvertToONNX(config)) {
       LOG(WARNING)
           << "Paddle2ONNX do't support convert the Model， fall back to using "
              "Paddle Inference.";

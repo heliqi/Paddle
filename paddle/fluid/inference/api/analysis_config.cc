@@ -235,6 +235,17 @@ void AnalysisConfig::EnableORTOptimization() {
   Update();
 }
 
+void AnalysisConfig::EnableONNXModel() {
+#ifdef PADDLE_WITH_ONNXRUNTIME
+  load_onnx_model_ = true;
+#else
+  LOG(ERROR) << "Please compile with onnxruntime to EnableONNXModel()";
+  load_onnx_model_ = false;
+#endif
+
+  Update();
+}
+
 AnalysisConfig::AnalysisConfig(const AnalysisConfig &other) {
 #define CP_MEMBER(member__) member__ = other.member__;
 
@@ -359,6 +370,11 @@ AnalysisConfig::AnalysisConfig(const AnalysisConfig &other) {
   CP_MEMBER(ipu_replica_num_);
   CP_MEMBER(ipu_available_memory_proportion_);
   CP_MEMBER(ipu_enable_half_partial_);
+
+  // OnnxRuntime related
+  CP_MEMBER(use_onnxruntime_);
+  CP_MEMBER(enable_ort_optimization_);
+  CP_MEMBER(load_onnx_model_);
 
   // fleet exe related
   CP_MEMBER(dist_config_);
