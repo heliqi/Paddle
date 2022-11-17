@@ -50,6 +50,7 @@ option(WITH_ROCM        "Compile PaddlePaddle with ROCM platform"       OFF)
 # to develop some acl related functionality on x86
 option(WITH_ASCEND_CL         "Compile PaddlePaddle with ASCEND CL"        ${WITH_ASCEND})
 option(WITH_ASCEND_CXX11         "Compile PaddlePaddle with ASCEND and CXX11 ABI"        OFF)
+option(WITH_ONNXRUNTIME "Compile PaddlePaddle with ONNXRUNTIME" OFF)
 # Note(zhouwei): It use option above, so put here
 include(init)
 include(generic)            # simplify cmake module

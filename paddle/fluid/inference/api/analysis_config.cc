@@ -384,6 +384,33 @@ void AnalysisConfig::EnableTensorRtEngine(
 #endif
 }
 
+void AnalysisConfig::EnableONNXRuntime() {
+#ifdef PADDLE_WITH_ONNXRUNTIME
+  use_onnxruntime_ = true;
+#else
+  LOG(ERROR) << "Please compile with onnxruntime to EnableONNXRuntime()";
+  use_onnxruntime_ = false;
+#endif
+
+  Update();
+}
+
+void AnalysisConfig::DisableONNXRuntime() {
+  use_onnxruntime_ = false;
+  Update();
+}
+
+void AnalysisConfig::EnableORTOptimization() {
+#ifdef PADDLE_WITH_ONNXRUNTIME
+  enable_ort_optimization_ = true;
+#else
+  LOG(ERROR) << "Please compile with onnxruntime to EnableORTOptimization()";
+  enable_ort_optimization_ = false;
+#endif
+
+  Update();
+}
+
 void AnalysisConfig::EnableDlnne(int min_subgraph_size) {
   use_dlnne_ = true;
   dlnne_min_subgraph_size_ = min_subgraph_size;

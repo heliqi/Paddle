@@ -175,6 +175,26 @@ if(WITH_PYTHON)
         list(APPEND OP_IMPL_DEPS ${op_impl_path}/mkldnn.dll)
     endif()
 
+    if(WITH_ONNXRUNTIME)
+      add_custom_command(
+        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/paddle2onnx.dll
+        COMMAND ${CMAKE_COMMAND} -E copy ${PADDLE2ONNX_LIB}
+                ${CMAKE_CURRENT_BINARY_DIR}
+        DEPENDS paddle2onnx)
+      list(APPEND OP_IMPL_DEPS ${CMAKE_CURRENT_BINARY_DIR}/paddle2onnx.dll)
+      list(APPEND EAGER_OP_IMPL_DEPS
+          ${CMAKE_CURRENT_BINARY_DIR}/paddle2onnx.dll)
+
+      add_custom_command(
+        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/onnxruntime.dll
+        COMMAND ${CMAKE_COMMAND} -E copy ${ONNXRUNTIME_SHARED_LIB}
+                ${CMAKE_CURRENT_BINARY_DIR}
+        DEPENDS onnxruntime)
+      list(APPEND OP_IMPL_DEPS ${CMAKE_CURRENT_BINARY_DIR}/onnxruntime.dll)
+      list(APPEND EAGER_OP_IMPL_DEPS
+          ${CMAKE_CURRENT_BINARY_DIR}/onnxruntime.dll)
+    endif()
+
     add_custom_command(OUTPUT ${impl_file}
       COMMAND ${CMAKE_BINARY_DIR}/paddle/fluid/pybind/op_function_generator_retry.bat
       COMMAND ${CMAKE_COMMAND} -E copy_if_different ${tmp_impl_file} ${impl_file}
@@ -185,6 +205,28 @@ if(WITH_PYTHON)
     # copy these *.so to current directory and append current directory to
     # LD_LIBRARY_PATH. This is different with Windows platformm, which search
     # *.dll in current directory automatically.
+    if(WITH_ONNXRUNTIME)
+      set(PADDLE2ONNX_PYBIND_OUT
+          ${CMAKE_CURRENT_BINARY_DIR}/${PADDLE2ONNX_LIB_NAME})
+      set(ONNXRUNTIME_PYBIND_OUT
+          ${CMAKE_CURRENT_BINARY_DIR}/${ONNXRUNTIME_LIB_NAME})
+
+      add_custom_command(
+        OUTPUT ${PADDLE2ONNX_PYBIND_OUT}
+        COMMAND ${CMAKE_COMMAND} -E copy ${PADDLE2ONNX_LIB}
+                ${CMAKE_CURRENT_BINARY_DIR}
+        DEPENDS paddle2onnx)
+      list(APPEND OP_IMPL_DEPS ${PADDLE2ONNX_PYBIND_OUT})
+      list(APPEND EAGER_OP_IMPL_DEPS ${PADDLE2ONNX_PYBIND_OUT})
+
+      add_custom_command(
+        OUTPUT ${ONNXRUNTIME_PYBIND_OUT}
+        COMMAND ${CMAKE_COMMAND} -E copy ${ONNXRUNTIME_LIB}
+                ${CMAKE_CURRENT_BINARY_DIR}
+        DEPENDS onnxruntime)
+      list(APPEND OP_IMPL_DEPS ${ONNXRUNTIME_PYBIND_OUT})
+      list(APPEND EAGER_OP_IMPL_DEPS ${ONNXRUNTIME_PYBIND_OUT})
+    endif()
     if(WITH_MKLML)
       ADD_CUSTOM_COMMAND(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/libiomp5.so
         COMMAND ${CMAKE_COMMAND} -E copy ${MKLML_SHARED_IOMP_LIB} ${CMAKE_CURRENT_BINARY_DIR}

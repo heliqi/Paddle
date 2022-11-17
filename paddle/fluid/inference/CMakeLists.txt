@@ -81,6 +81,12 @@ set(SHARED_INFERENCE_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/utils/io_utils.cc
     ${PADDLE_CUSTOM_OP_SRCS})
 
+if(WITH_ONNXRUNTIME)
+  set(SHARED_INFERENCE_SRCS
+      ${SHARED_INFERENCE_SRCS}
+      ${CMAKE_CURRENT_SOURCE_DIR}/api/onnxruntime_predictor.cc)
+endif()
+
 # shared inference library deps
 set(SHARED_INFERENCE_DEPS ${fluid_modules} analysis_predictor)
 

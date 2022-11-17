@@ -21,11 +21,23 @@
 #include "paddle/fluid/platform/enforce.h"
 #include "paddle/fluid/platform/float16.h"
 
+#ifdef PADDLE_WITH_ONNXRUNTIME
+#include "onnxruntime_c_api.h"    // NOLINT
+#include "onnxruntime_cxx_api.h"  // NOLINT
+#endif
+
 namespace paddle_infer {
 
 using float16 = paddle::platform::float16;
 
 void Tensor::Reshape(const std::vector<int> &shape) {
+#ifdef PADDLE_WITH_ONNXRUNTIME
+  if (is_ort_tensor_) {
+    shape_.assign(shape.begin(), shape.end());
+    return;
+  }
+#endif
+
   PADDLE_ENFORCE_EQ(
       name_.empty(), false,
       paddle::platform::errors::PreconditionNotMet(
@@ -69,6 +81,12 @@ void Tensor::ReshapeStrings(const size_t &shape) {
 
 template <typename T>
 T *Tensor::mutable_data(PlaceType place) {
+#ifdef PADDLE_WITH_ONNXRUNTIME
+  if (is_ort_tensor_) {
+    return ORTGetMutableData<T>();
+  }
+#endif
+
   EAGER_GET_TENSOR(paddle::framework::LoDTensor);
   PADDLE_ENFORCE_GT(
       tensor->numel(), 0,
@@ -121,6 +139,12 @@ T *Tensor::data(PlaceType *place, int *size) const {
 }
 
 DataType Tensor::type() const {
+#ifdef PADDLE_WITH_ONNXRUNTIME
+  if (is_ort_tensor_) {
+    return dtype_;
+  }
+#endif
+
   EAGER_GET_TENSOR(paddle::framework::LoDTensor);
   auto type = tensor->type();
   if (type == paddle::framework::proto::VarType::FP32) {
@@ -304,6 +328,13 @@ void Tensor::CopyToCpuImpl(T *data, void *exec_stream, CallbackFunc cb,
 
 template <typename T>
 void Tensor::CopyToCpu(T *data) const {
+#ifdef PADDLE_WITH_ONNXRUNTIME
+  if (is_ort_tensor_) {
+    ORTCopyToCpu<T>(data);
+    return;
+  }
+#endif
+
   CopyToCpuImpl<T>(data, nullptr, nullptr, nullptr);
 }
 
@@ -392,12 +423,7 @@ template PD_INFER_DECL uint8_t *Tensor::mutable_data<uint8_t>(PlaceType place);
 template PD_INFER_DECL int8_t *Tensor::mutable_data<int8_t>(PlaceType place);
 template PD_INFER_DECL float16 *Tensor::mutable_data<float16>(PlaceType place);
 
-Tensor::Tensor(void *scope) : scope_{scope} {
-  PADDLE_ENFORCE_NOT_NULL(scope_,
-                          paddle::platform::errors::PreconditionNotMet(
-                              "The `scope` can not be nullptr. It should be "
-                              "set to the pointer of scope."));
-}
+Tensor::Tensor(void *scope) : scope_{scope} {}
 
 template <typename T>
 void *Tensor::FindTensor() const {
@@ -416,6 +442,27 @@ void *Tensor::FindTensor() const {
 }
 
 std::vector<int> Tensor::shape() const {
+#ifdef PADDLE_WITH_ONNXRUNTIME
+  if (is_ort_tensor_) {
+    std::vector<int> shape;
+    // input handle
+    if (idx_ < 0) {
+      shape.assign(shape_.begin(), shape_.end());
+    } else {  // output handle
+      auto binding = binding_.lock();
+      PADDLE_ENFORCE_NOT_NULL(binding,
+                              paddle::platform::errors::PreconditionNotMet(
+                                  "output tensor [%s] no binding ptr", name_));
+      std::vector<Ort::Value> outputs = binding->GetOutputValues();
+      Ort::Value &value = outputs[idx_];
+      auto info = value.GetTensorTypeAndShapeInfo();
+      auto ort_shape = info.GetShape();
+      shape.assign(ort_shape.begin(), ort_shape.end());
+    }
+    return shape;
+  }
+#endif
+
   EAGER_GET_TENSOR(paddle::framework::LoDTensor);
   PADDLE_ENFORCE_NOT_NULL(
       tensor_, paddle::platform::errors::PreconditionNotMet(
@@ -440,6 +487,51 @@ std::vector<std::vector<size_t>> Tensor::lod() const {
   }
   return res;
 }
+
+#ifdef PADDLE_WITH_ONNXRUNTIME
+void Tensor::SetOrtMark(bool is_ort_tensor) { is_ort_tensor_ = is_ort_tensor; }
+
+void Tensor::SetOrtBinding(const std::shared_ptr<Ort::IoBinding> binding) {
+  binding_ = binding;
+}
+
+template <typename T>
+T *Tensor::ORTGetMutableData() {
+  auto binding = binding_.lock();
+  PADDLE_ENFORCE_NOT_NULL(binding,
+                          paddle::platform::errors::PreconditionNotMet(
+                              "output tensor [%s] no binding ptr", name_));
+  std::vector<Ort::Value> outputs = binding->GetOutputValues();
+  Ort::Value &value = outputs[idx_];
+  return value.GetTensorMutableData<T>();
+}
+
+template <typename T>
+void Tensor::ORTCopyToCpu(T *data) const {
+  auto binding = binding_.lock();
+  PADDLE_ENFORCE_NOT_NULL(binding,
+                          paddle::platform::errors::PreconditionNotMet(
+                              "output tensor [%s] no binding ptr", name_));
+  std::vector<Ort::Value> outputs = binding->GetOutputValues();
+  Ort::Value &value = outputs[idx_];
+  auto info = value.GetTensorTypeAndShapeInfo();
+  size_t size = info.GetElementCount() * sizeof(T);
+
+  if (place_ == PlaceType::kCPU) {
+    std::memcpy(static_cast<void *>(data), value.GetTensorData<void *>(), size);
+  } else {
+    PADDLE_THROW(paddle::platform::errors::Unavailable(
+        "CopyToCpu error.The current ONNXRuntime backend doesn't support "
+        "GPU."));
+  }
+}
+
+template void Tensor::ORTCopyToCpu<float>(float *data) const;
+template void Tensor::ORTCopyToCpu<int32_t>(int32_t *data) const;
+template void Tensor::ORTCopyToCpu<uint8_t>(uint8_t *data) const;
+template void Tensor::ORTCopyToCpu<int8_t>(int8_t *data) const;
+template void Tensor::ORTCopyToCpu<float16>(float16 *data) const;
+#endif
 
 void Tensor::SetName(const std::string &name) { name_ = name; }
 

@@ -190,6 +190,18 @@ struct PD_INFER_DECL AnalysisConfig {
   /// \return bool Whether fc padding is used.
   ///
   bool use_fc_padding() const { return use_fc_padding_; }
+  ///
+  /// \brief Turn on ONNXRuntime.
+  ///
+  void EnableONNXRuntime();
+  ///
+  /// \brief Turn off ONNXRuntime.
+  ///
+  void DisableONNXRuntime();
+  ///
+  /// \brief Turn on ONNXRuntime Optimization.
+  ///
+  void EnableORTOptimization();
 
   // GPU related.
 
@@ -260,6 +272,19 @@ struct PD_INFER_DECL AnalysisConfig {
   /// \return bool Whether the NPU is turned on.
   ///
   bool use_npu() const { return use_npu_; }
+  ///
+  /// \brief A boolean state telling whether the ONNXRuntime is turned on.
+  ///
+  /// \return bool Whether the ONNXRuntime is turned on.
+  ///
+  bool use_onnxruntime() const { return use_onnxruntime_; }
+  ///
+  /// \brief A boolean state telling whether the ONNXRuntime Optimization is
+  /// turned on.
+  ///
+  /// \return bool Whether the ONNXRuntime Optimization is turned on.
+  ///
+  bool ort_optimization_enabled() const { return enable_ort_optimization_; }
   ///
   /// \brief Get the GPU device id.
   ///
@@ -839,6 +864,10 @@ struct PD_INFER_DECL AnalysisConfig {
   std::shared_ptr<MkldnnQuantizerConfig> mkldnn_quantizer_config_;
   bool use_mkldnn_bfloat16_{false};
   std::unordered_set<std::string> bfloat16_enabled_op_types_;
+
+  // ONNXRuntime related
+  bool use_onnxruntime_{false};
+  bool enable_ort_optimization_{false};
 
   // If the config is already used on a predictor, it becomes invalid.
   // Any config can only be used with one predictor.
