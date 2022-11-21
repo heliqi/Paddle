@@ -183,6 +183,9 @@ AnalysisConfig::AnalysisConfig(const AnalysisConfig &other) {
   CP_MEMBER(use_mkldnn_);
   CP_MEMBER(mkldnn_enabled_op_types_);
   CP_MEMBER(mkldnn_cache_capacity_);
+  // ONNXRuntime related.
+  CP_MEMBER(use_onnxruntime_);
+  CP_MEMBER(enable_ort_optimization_);
   // Bfloat16 related.
   CP_MEMBER(use_mkldnn_bfloat16_);
   CP_MEMBER(bfloat16_enabled_op_types_);
