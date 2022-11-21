@@ -728,10 +728,13 @@ std::unique_ptr<PaddlePredictor> CreatePaddlePredictor<
     FLAGS_minloglevel = 2;  // GLOG_ERROR
   }
   VLOG(3) << "create AnalysisConfig";
-  PADDLE_ENFORCE_EQ(
-      config.is_valid(), true,
-      platform::errors::InvalidArgument(
-          "Note: Each config can only be used for one predictor."));
+  // PADDLE_ENFORCE_EQ(
+  //     config.is_valid(), true,
+  //     platform::errors::InvalidArgument(
+  //         "Note: Each config can only be used for one predictor."));
+  if (!config.is_valid()) {
+    LOG(WARNING) << "Note: Each config can only be used for one predictor.";
+  }
 
   // Register custom operators compiled by the user.
   // This function can only be executed once per process.

@@ -193,16 +193,20 @@ CreatePaddlePredictor<AnalysisConfig, PaddleEngineKind::kONNXRuntime>(
     FLAGS_minloglevel = 2;  // GLOG_ERROR
   }
 
-  PADDLE_ENFORCE_EQ(
-      config.is_valid(), true,
-      platform::errors::InvalidArgument(
-          "Note: Each config can only be used for one predictor."));
+  // PADDLE_ENFORCE_EQ(
+  //     config.is_valid(), true,
+  //     platform::errors::InvalidArgument(
+  //         "Note: Each config can only be used for one predictor."));
+  if (!config.is_valid()) {
+    LOG(WARNING)
+        << "Note: Each config can only be used for one onnx predictor.";
+  }
 
   VLOG(3) << "create ONNXRuntimePredictor";
 
   std::unique_ptr<PaddlePredictor> predictor(new ONNXRuntimePredictor(config));
   // Each config can only be used for one predictor.
-  config.SetInValid();
+  // config.SetInValid();
   auto predictor_p = dynamic_cast<ONNXRuntimePredictor *>(predictor.get());
 
   if (!predictor_p->Init()) {
